@@ -1,5 +1,6 @@
 package taxi;
 
+import org.apache.spark.Accumulator;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -18,6 +19,18 @@ public class Main {
         JavaRDD<String> lines = sc.textFile("data/taxi_order.txt");
         JavaRDD<Trip> tripRdd = lines.map(Trip::convertLineToTrip);
         tripRdd.persist(MEMORY_AND_DISK());
+
+        Accumulator<Integer> smallTripsAcc = sc.accumulator(0, "smallTripsAcc");
+
+        tripRdd.foreach(trip ->{
+            if (trip.getKm() < 5) {
+               smallTripsAcc.add(1);
+            }
+        });
+        Integer smallTrips = smallTripsAcc.value();
+        System.out.println("smallTrips = " + smallTrips);
+
+
         JavaRDD<Trip> bostonTripsRdd = tripRdd.filter(trip -> trip.getCity().equals("boston"));
         bostonTripsRdd.persist(MEMORY_AND_DISK());
 
